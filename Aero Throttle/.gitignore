@@ -3,6 +3,7 @@
 .pytest_cache/
 .mypy_cache/
 .venv/
+.venv-cad/
 venv/
 
 # Generated CAD outputs and reports

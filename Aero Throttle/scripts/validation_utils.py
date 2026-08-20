@@ -15,7 +15,9 @@ CONFIG_PATH = PROJECT_ROOT / "validation_config.json"
 def load_config() -> dict[str, Any]:
     if not CONFIG_PATH.is_file():
         raise RuntimeError(f"Missing validation configuration: {CONFIG_PATH}")
-    with CONFIG_PATH.open(encoding="utf-8") as config_file:
+    # Repository configuration files are UTF-8 and may carry a Windows BOM.
+    # ``utf-8-sig`` accepts both forms without altering validation criteria.
+    with CONFIG_PATH.open(encoding="utf-8-sig") as config_file:
         config = json.load(config_file)
     if not isinstance(config, dict):
         raise RuntimeError("validation_config.json must contain a JSON object")
