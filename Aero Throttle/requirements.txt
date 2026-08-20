@@ -1,0 +1,3 @@
+﻿# Mesh analysis dependency used by scripts/analyze_mesh.py and tests.
+trimesh>=4.0
+numpy>=1.24

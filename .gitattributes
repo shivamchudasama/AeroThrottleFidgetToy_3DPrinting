@@ -1,0 +1,17 @@
+# Git LFS routing — must be committed BEFORE the first binary lands, or the
+# blobs stay in history permanently.
+*.stl  filter=lfs diff=lfs merge=lfs -text
+*.3mf  filter=lfs diff=lfs merge=lfs -text
+*.step filter=lfs diff=lfs merge=lfs -text
+*.stp  filter=lfs diff=lfs merge=lfs -text
+*.pdf  filter=lfs diff=lfs merge=lfs -text
+
+# *.png is deliberately NOT routed to LFS: small doc/preview images are cheaper
+# as ordinary blobs than as LFS storage and bandwidth, which are the scarce
+# resources on the free tier (1 GB storage, 1 GB/month).
+
+# Text normalisation
+*.scad text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf

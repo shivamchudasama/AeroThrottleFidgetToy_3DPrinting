@@ -1,0 +1,25 @@
+﻿{
+  "mesh_path": "output/stl/model.stl",
+  "bounds_tolerance_mm": 0.1,
+  "expected_bounds_mm": null,
+  "expected_minimum_mm": null,
+  "min_volume_mm3": null,
+  "max_volume_mm3": null,
+  "require_watertight": true,
+  "max_connected_components": 1,
+  "project_checks": {
+    "clearances": {
+      "required": false,
+      "command": []
+    },
+    "features": {
+      "required": false,
+      "command": []
+    },
+    "self_intersections": {
+      "required": false,
+      "command": []
+    }
+  },
+  "parametric_sweeps": []
+}

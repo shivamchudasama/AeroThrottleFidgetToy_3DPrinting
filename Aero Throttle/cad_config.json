@@ -1,0 +1,14 @@
+﻿{
+  "engine": "openscad",
+  "source": "src/main.scad",
+  "exports": {
+    "stl": "output/stl/model.stl",
+    "step": "output/step/model.step",
+    "preview": "output/preview/model.png"
+  },
+  "commands": {
+    "stl_export": ["openscad", "-o", "{stl_path}", "{source}"],
+    "step_export": [],
+    "preview": ["openscad", "--render", "-o", "{preview_path}", "{source}"]
+  }
+}
