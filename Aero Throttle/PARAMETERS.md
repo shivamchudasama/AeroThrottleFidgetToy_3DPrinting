@@ -9,6 +9,7 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 3. Every parameter carries a valid range. `tests/test_parametric_extremes.py` rebuilds at both ends (V-160).
 4. Values marked **[D-nn]** were changed from PRD v2.0; see `DESIGN_SPEC.md` §13 for the reason. Values marked **[A-nn]** are assumptions; see §14.
 5. Units: mm, deg, N, N·mm, MPa, g. Identifiers carry `_deg`, `_n`, `_mpa`, `_g` suffixes where they are not mm.
+6. **§15 is mandatory reading and governs.** It carries the Phase 3 corrections (S-01 … S-11) issued against `design/DESIGN_REVIEW.md`. Values marked **[S-nn]** in §§1–11 were changed there; §15 supersedes §12, §13 and §14 wherever they disagree. §14 is retired outright.
 
 ---
 
@@ -22,7 +23,8 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `sigma_y_mpa` | MPa | 55 | 40 … 70 | `material` | Flexural yield. |
 | `sigma_allow_cyclic_mpa` | MPa | 25 | 15 … 30 | `0.45 * sigma_y_mpa` | Working-stress limit, 10⁴ cycles (R-M1). |
 | `sigma_allow_sustained_mpa` | MPa | 8 | 5 … 12 | `0.15 * sigma_y_mpa` | Creep limit for preloaded flexures (R-M2). |
-| `strain_assembly_max` | - | 0.015 | 0.010 … 0.030 | `material` | One-time snap-fit strain limit (R-M3). |
+| `strain_assembly_max` | - | 0.015 | 0.010 … 0.030 | `material` | One-time snap-fit strain limit (R-M3), in-plane bending. |
+| `strain_assembly_max_xlayer` | - | 0.009 | 0.006 … 0.018 | `0.60 * strain_assembly_max` | Derated limit for snaps whose bending axis is parallel to print Z (R-P2). **[S-05]** |
 | `mu_pla` | - | 0.30 | 0.20 … 0.45 | - | Printed-plastic friction coefficient. **[A-08]** |
 | `rho_eff_g_mm3` | g/mm³ | 0.00042 | 0.00030 … 0.00060 | infill | Effective density for the mass check (V-176). **[A-14]** |
 | `fn_curve` | - | 96 | 32 … 256 | - | Facet count for curved surfaces; must satisfy chordal deviation ≤ 0.01 mm at the largest radius (V-104). |
@@ -40,6 +42,7 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `hole_comp` | mm (dia) | 0.10 | 0.00 … 0.25 | printer | FDM hole-shrinkage compensation, applied once in `bore()`. |
 | `wall_exterior` | mm | 2.40 | 1.60 … 3.60 | - | Load-bearing exterior wall (6 perimeters at 0.40). |
 | `wall_internal` | mm | 1.80 | 1.20 … 2.60 | - | Internal partitions and bosses. |
+| `wall_shell_min` | mm | 1.60 | 1.20 … 2.40 | - | Minimum non-structural shell wall; applies only to features granted the §10.2 shell exemption (ATH_04 hood). **[S-08]** |
 | `feature_min` | mm | 0.80 | 0.60 … 1.20 | - | Minimum positive feature (P-5). |
 | `deboss_depth` | mm | 0.50 | 0.30 … 0.90 | - | Text and arrow deboss depth (P-6). |
 | `gap_print_min` | mm | 0.40 | 0.30 … 0.60 | - | Minimum gap between separate walls (P-7). |
@@ -65,7 +68,7 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | Parameter | Units | Default | Valid range | Derived from | Purpose |
 | :-- | :-- | :-- | :-- | :-- | :-- |
 | `crown_chamfer` | mm | 3.00 | 1.0 … 6.0 | - | 45° chamfer leg on both top edges. |
-| `front_lower_chamfer` | mm | 12.00 | 6.0 … 18.0 | - | 45° nose chamfer leg, from (82, 12) to (70, 0). Sets where the seam perimeter ends. |
+| `front_lower_chamfer` | mm | 2.00 | 1.0 … 4.0 | ≤ `chassis_body_length` − max seam station | 45° nose chamfer leg on the **body** front face. Sets where the seam perimeter ends. **[S-03]** |
 | `collar_w` | mm | 18.00 | 12 … 24 | - | Snout collar Z extent. |
 | `collar_h` | mm | 20.00 | 14 … 28 | - | Snout collar Y extent. |
 | `collar_depth` | mm | 10.00 | 6 … 14 | **derived, §12.2** | Collar X extent = `bezel_depth - bezel_protrusion`. |
@@ -95,13 +98,13 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 
 | Parameter | Units | Default | Valid range | Derived from | Purpose |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| `bezel_w` | mm | 22.00 | 16 … 28 | - | Bezel Z extent. |
-| `bezel_h` | mm | 24.00 | 18 … 32 | - | Bezel Y extent. |
+| `bezel_w` | mm | 23.00 | 16 … 28 | ≥ `bezel_cavity_w` + 2·`wall_exterior` | Bezel Z extent. **[S-08]** |
+| `bezel_h` | mm | 25.00 | 18 … 32 | ≥ `bezel_cavity_h` + 2·`wall_exterior` | Bezel Y extent. **[S-08]** |
 | `bezel_depth` | mm | 12.00 | 8 … 18 | - | Bezel X extent. |
 | `bezel_protrusion` | mm | 2.00 | 0.5 … 5.0 | - | How far the bezel stands proud of datum D. **[A-02]** |
 | `bezel_center_y` | mm | 22.00 | 14 … 28 | - | Bezel centreline height. **[A-03][D-14]** |
 | `bezel_chamfer` | mm | 1.50 | 0.8 … 3.0 | - | Perimeter chamfer leg, 45°. |
-| `bezel_barb_len` | mm | 10.50 | 8 … 14 | ≥ §12.6 strain limit | Snap barb length. **[D-12]** |
+| `bezel_barb_len` | mm | 11.60 | 8 … 14 | ≥ §12.6 strain limit | Snap barb length. **[D-12][S-06]** |
 | `bezel_barb_w` | mm | 2.80 | 2.0 … 4.0 | - | Snap barb width. |
 | `bezel_barb_t` | mm | 1.40 | 1.0 … 2.0 | - | Snap barb thickness. |
 | `snap_undercut` | mm | 0.80 | 0.4 … 1.2 | - | Retention undercut, all permanent snaps. |
@@ -115,21 +118,22 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `guard_open_deg` | deg | 90.0 | 80 … 110 | - | Open detent angle. |
 | `guard_overtravel_deg` | deg | 100.0 | 90 … 120 | - | Hard stop. |
 | `guard_cam_lobe` | mm | 0.80 | 0.4 … 1.4 | - | Over-centre lobe eccentricity. |
+| `guard_detent_torque_nmm` | N·mm | 3.00 | 1.5 … 6.0 | - | Holding torque at each guard rest position. **[S-10, answers OQ-3]** |
 | `guard_cam_base_r` | mm | 3.20 | 2.0 … 5.0 | - | Cam base radius. |
 | `guard_cam_leaf_len` | mm | 12.00 | 10 … 18 | ≥ §12.6 stress limit | Bi-stable leaf length in the bezel. |
-| `guard_cam_leaf_w` | mm | 6.00 | 3 … 10 | **OQ-3** | Leaf width — the only force term still unconstrained. |
+| `guard_cam_leaf_w` | mm | 6.00 | 3 … 10 | **derived, §15.4** | Leaf width, solved from `guard_detent_torque_nmm`. **[S-10]** |
 | `guard_cam_leaf_t` | mm | 0.90 | 0.7 … 1.3 | - | Leaf thickness. |
 | `fire_btn_size` | mm | 10.50 | 8 … 14 | - | Square head side. |
 | `fire_btn_head_t` | mm | 3.60 | 2.5 … 5.0 | - | Head thickness. |
-| `fire_btn_proud` | mm | 3.00 | 2.0 … 4.5 | < `guard_hood_h - guard_wall` | Head height above the guard recess floor at rest. **[A-16]** |
+| `fire_btn_proud` | mm | 2.50 | 1.5 … 4.5 | **derived, §15.2** | Head height above the guard recess floor at rest. **[A-16][S-02]** |
 | `fire_btn_travel` | mm | 3.50 | 2.0 … 5.0 | - | Working stroke. |
 | `fire_btn_flange` | mm | 12.50 | 11 … 15 | > `fire_btn_bore` | Retaining flange side. |
 | `fire_btn_flange_t` | mm | 1.20 | 0.8 … 2.0 | - | Flange thickness. |
 | `fire_btn_force_n` | N | 3.20 | 1.5 … 5.0 | - | Return-force target at full stroke. |
 | `serpentine_loops` | - | 6 | 4 … 9 | - | Half-loops in series. **[D-06]** |
-| `serpentine_loop_r` | mm | 5.00 | 3.5 … 6.5 | - | Mean arc radius. **[D-06]** |
+| `serpentine_loop_r` | mm | 4.22 | 3.5 … 6.5 | **derived, §15.3** | Mean arc radius. **[D-06][S-11]** |
 | `serpentine_beam_w` | mm | 1.10 | 0.8 … 1.6 | - | In-plane bending thickness. |
-| `serpentine_beam_t` | mm | 4.80 | 2.0 … 7.0 | **tuning knob, §12.5** | Out-of-plane depth; the designated force-tuning parameter. **[D-06]** |
+| `serpentine_beam_t` | mm | 4.80 | 2.0 … 7.0 | **tuning knob, §15.3** | Out-of-plane depth; the designated force-tuning parameter. **[D-06][S-11]** |
 | `serpentine_free_h` | mm | 13.50 | 10 … 18 | - | Free height along X. |
 | `fire_btn_stop_reserve` | mm | 1.00 | 0.5 … 2.0 | - | Gap between the hard stop and the spring's solid height. |
 
@@ -146,8 +150,8 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `hat_arm_r` | mm | 7.00 | 5 … 8.5 | < `hat_cap_od/2` | Radius at which arm tips act. **[A-13]** |
 | `hat_spring_arm_count` | - | 4 | 3 … 6 | - | Star arms. |
 | `hat_spring_arm_len` | mm | 17.00 | 12 … 22 | **derived, §12.7** | Developed arm length. **[D-08]** |
-| `hat_spring_arm_width` | mm | 4.00 | 2.5 … 6.0 | **tuning knob** | Radial ribbon width; the force term. **[D-08]** |
-| `hat_spring_arm_thick` | mm | 0.85 | 0.75 … 1.20 | ≥ `flexure_min` | Bending thickness (along Y). |
+| `hat_spring_arm_width` | mm | 4.17 | 2.5 … 6.0 | **tuning knob, §15.5** | Radial ribbon width; the force term. **[D-08][S-11]** |
+| `hat_spring_arm_thick` | mm | 1.25 | 0.75 … 1.60 | **derived, §15.5** | Bending thickness (along Y). **[S-11]** |
 | `hat_arm_sweep_deg` | deg | 150.0 | 110 … 200 | - | Spiral sweep. |
 | `hat_arm_mean_r` | mm | 6.50 | 5 … 8 | **derived, §12.7** | Spiral mean radius. |
 | `hat_detent_depth` | mm | 0.60 | 0.3 … 1.0 | - | Deck detent pocket depth. |
@@ -208,13 +212,13 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `throttle_glide_force_n` | N | 0.80 | 0.3 … 1.5 | - | Force over the smooth stroke. |
 | `throttle_break_force_n` | N | 4.30 | 2.5 … 6.5 | - | Total force at the gate. |
 | `throttle_leaf_len` | mm | 28.41 | 20 … 34 | **derived, §12.9** | Detent leaf developed length. **[D-07]** |
-| `throttle_leaf_width` | mm | 4.00 | 2.5 … 6.0 | **tuning knob** | Leaf width; the force term (stress-neutral). **[D-07]** |
-| `throttle_leaf_thick` | mm | 2.63 | 1.6 … 3.2 | **derived, §12.9** | Leaf bending thickness. **[D-07]** |
-| `throttle_leaf_fold_r` | mm | 2.60 | 2.20 … 3.25 | ≥ (`throttle_leaf_width`+`gap_print_min`)/2 | Fold radius; sets arm spacing. |
+| `throttle_leaf_width` | mm | 2.04 | 1.5 … 6.0 | **tuning knob, §15.6** | Leaf width; the force term (stress-neutral). **[D-07][S-11]** |
+| `throttle_leaf_thick` | mm | 3.92 | 1.6 … 4.5 | **derived, §15.6** | Leaf bending thickness. **[D-07][S-11]** |
+| `throttle_leaf_fold_r` | mm | 1.90 | 1.20 … 3.25 | ≥ (`throttle_leaf_width`+`gap_print_min`)/2 | Fold radius; sets arm spacing. **[S-11]** |
 | `throttle_leaf_arms` | - | 2 | 2 … 4 | **§12.9 envelope fit** | Arms in the folded leaf. |
-| `carriage_plate_t` | mm | 4.80 | 3.0 … 6.5 | **derived, §12.9** | Carriage plate thickness; hosts the leaf pocket and its travel. |
+| `carriage_plate_t` | mm | 5.85 | 3.0 … 6.5 | **derived, §15.6** | Carriage plate thickness; hosts the leaf pocket and its travel. **[S-11]** |
 | `detent_follower_r` | mm | 1.20 | 0.8 … 2.0 | - | Follower nose radius. |
-| `throttle_detent_preload` | mm | 0.45 | 0.20 … 0.75 | ≤ §12.6 creep limit | Leaf preload at rest. **[D-07]** |
+| `throttle_detent_preload` | mm | 0.41 | 0.20 … 0.75 | ≤ §15.6 creep limit | Leaf preload at rest. **[D-07][S-11]** |
 
 ## 10. Trigger (ATH_09) and its grip cradle
 
@@ -229,16 +233,16 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `trigger_travel_deg` | deg | 15.00 | 8 … 22 | - | Total rotation. |
 | `trigger_stage1_travel` | mm | 3.00 | 1.5 … 5.0 | - | Stage-1 shoe travel. |
 | `trigger_stage1_len` | mm | 21.20 | 15 … 26 | **derived, §12.10** | Stage-1 leaf developed length. **[D-09]** |
-| `trigger_stage1_width` | mm | 14.60 | 8 … 18 | **tuning knob** | Stage-1 leaf width; the force term. **[D-09]** |
-| `trigger_stage1_thick` | mm | 0.75 | 0.60 … 1.10 | ≥ `flexure_min` | Stage-1 bending thickness. |
+| `trigger_stage1_width` | mm | 7.68 | 4 … 18 | **tuning knob, §15.7** | Stage-1 leaf width; the force term. **[D-09][S-11]** |
+| `trigger_stage1_thick` | mm | 1.098 | 0.60 … 1.40 | **derived, §15.7** | Stage-1 bending thickness. **[S-11]** |
 | `trigger_stage1_force_n` | N | 1.60 | 0.8 … 3.0 | - | Stage-1 force target. |
 | `trigger_stage2_len` | mm | 12.20 | 9 … 16 | **derived, §12.10** | Stage-2 tooth beam length. |
-| `trigger_stage2_width` | mm | 6.00 | 4 … 9 | **tuning knob** | Stage-2 tooth width. |
-| `trigger_stage2_thick` | mm | 1.35 | 1.0 … 1.8 | - | Stage-2 tooth thickness. |
+| `trigger_stage2_width` | mm | 7.22 | 4 … 9 | **tuning knob, §15.7** | Stage-2 tooth width. **[S-11]** |
+| `trigger_stage2_thick` | mm | 1.50 | 1.0 … 2.0 | - | Stage-2 tooth thickness. **[S-11]** |
 | `trigger_stage2_deflect` | mm | 0.55 | 0.3 … 0.9 | - | Stop-bar interference. |
 | `trigger_gate_angle_deg` | deg | 45.0 | 30 … 60 | - | Stop-bar gate flank. |
 | `trigger_break_force_n` | N | 5.20 | 3.0 … 8.0 | - | Stage-2 break force target. |
-| `trigger_tooth_r` | mm | 9.46 | 6 … 14 | **derived, §12.10** | Radius at which the stage-2 tooth acts. |
+| `trigger_tooth_r` | mm | 9.456 | 6 … 14 | **derived, §15.7** | Radius at which the stage-2 tooth acts. |
 | `trigger_overtravel_deg` | deg | 0.60 | 0.2 … 1.5 | - | Rotation past full travel before the hard shelf. |
 | `trigger_cradle_mouth_w` | mm | 3.40 | 2.5 … 4.0 | < `trigger_trunnion_d` | Snap-in entry width. |
 | `trigger_cradle_wall_len` | mm | 7.50 | 5 … 12 | **§12.6 strain** | Cradle spring-wall length. |
@@ -262,7 +266,7 @@ Registry of every named variable in `src/parameters.scad`. Companion to `DESIGN_
 | `snap_hook_z` | mm | 9.50 | 6 … 11 | - | Hook lateral offset. |
 | `key_side` | mm | 4.00 | 3 … 6 | - | Alignment key cross-section. |
 | `key_len` | mm | 8.00 | 6 … 12 | - | Alignment key length (straddles datum A). |
-| `key_stations_x` | mm[] | [30.0, 58.0] | within [0, 70] | - | Key X stations, on Z = 0. |
+| `key_stations_x` | mm[] | [20.0, 37.0] | within the grip-root band | Key X stations, on Z = 0. Both must lie where ATH_02 has full socket depth and clear of datum J. **[S-01]** |
 | `key_chamfer` | mm | 0.60 | 0.3 … 1.0 | - | Key end lead-in. |
 | `flexure_min` | mm | 0.75 | 0.60 … 1.00 | - | Minimum flexure thickness (P-4). |
 | `guard_hinge_slot_w` | mm | 2.10 | 1.6 … 2.3 | < `guard_pin_d` | Radial snap-entry slot in the stanchions. |
@@ -523,17 +527,243 @@ These belong at the bottom of `src/parameters.scad` as OpenSCAD `assert()` calls
 
 ---
 
-## 14. Material Re-Targeting (PETG)
+## 14. Material Re-Targeting (PETG) — **RETIRED**
 
-Switching `material` to `"PETG"` changes `E_flex_mpa` 3300 → 2000, which scales every spring force by 0.606 and leaves every stress unchanged in the same geometry. To hold the force targets, the **width/depth** terms scale by `3300/2000 = 1.65` (R-M4 — width does not affect stress):
+> **This section is void.** It assumed a single global material and a uniform 1.65x width scaling from PLA+ to PETG, and concluded that three of six mechanisms would not fit. That conclusion was correct for a global switch but is no longer the design: OQ-6 authorised a **per-part hybrid allocation**, and every flexure has since been re-solved for its own part's material from the §6.2 equations rather than scaled.
+>
+> **Superseded by §15.10** (the per-part material map) and §15.3, §15.5, §15.6 and §15.7 (the individual solves). The scaling table that stood here has been removed so it cannot be mistaken for live values.
 
-| Parameter | PLA+ | PETG |
+---
+
+## 15. Phase 3 Corrections (S-01 … S-11) — **normative, supersedes §12, §13 and §14**
+
+**Status:** issued 2026-08-21 by the design authority in response to `design/DESIGN_REVIEW.md` §5.
+**Precedence:** where this section and §§12–14 disagree, **§15 governs**. Where it and `DESIGN_SPEC.md` §§1–15 disagree, `DESIGN_SPEC.md` §16 and this section govern together (they were issued as one change).
+
+Every value below is a **formula**, not a literal. The implementation must evaluate the formula; a 14-digit solver output typed as a constant is a defect (review M-20).
+
+### 15.1 Chassis nose and seam chain **[S-03]**
+
+The chassis body no longer runs to datum D. It stops at the bezel rear plane, and the collar is a free-standing boss ahead of it.
+
+```
+chassis_body_length = bezel_rear_x                                        = 72.00
+seam_x_max          = chassis_body_length - front_lower_chamfer           = 70.00
+collar_x0           = bezel_rear_x                                        = 72.00
+collar_depth        = chassis_length - chassis_body_length                = 10.00
+```
+
+`seam_x_max` keeps its previous value of 70.00; only its derivation changes. **ASSERT-19 must be updated to the new expression.** `front_lower_chamfer` falls from 12.00 to 2.00 because the leg is now measured from the body front face at X = 72.0 rather than from datum D at X = 82.0.
+
+### 15.2 Fire-button axial stack **[S-02]**
+
+`fire_btn_proud` becomes derived. It is the largest head protrusion that leaves a printable gap under the closed hood.
+
+```
+fire_btn_proud       = guard_hood_h - guard_wall - gap_print_min          =  2.50
+recess_floor_x       = bezel_front_x - guard_recess_depth                 = 81.50
+btn_head_front_x     = recess_floor_x + fire_btn_proud                    = 84.00
+btn_head_rear_x      = btn_head_front_x - fire_btn_head_t                 = 80.40
+btn_flange_rear_x    = btn_head_rear_x - fire_btn_flange_t                = 79.20
+serpentine_anchor_rear_x = btn_flange_rear_x - serpentine_free_h          = 65.70
+snout_cavity_rear_x  = serpentine_anchor_rear_x - 0.20                    = 65.50
+hood_inner_ceiling_x = recess_floor_x + guard_hood_h - guard_wall         = 84.40
+guard_to_button_gap  = hood_inner_ceiling_x - btn_head_front_x            =  0.40  -- ASSERT-07
+available_depth      = btn_flange_rear_x - snout_cavity_rear_x            = 13.70 >= 13.70
+```
+
+**Consequence, stated explicitly:** the button head's front face is now flush with the bezel front face (both at X = 84.00) instead of standing 0.50 mm proud of it. The head remains fully accessible through the 16.00 x 20.00 guard recess when the hood is open, and it is now fully protected when the hood is shut. The X chain is untouched: `fire_btn_proud` is not one of its terms.
+
+### 15.3 Fire-button serpentine — PETG arc solve **[S-11, resolves review B-10]**
+
+Solved from three simultaneous constraints, in this order. The binding one is the solid-height reserve, not the stress limit.
+
+```
+-- 1. solid-height reserve (ASSERT-06) sets the in-plane thickness:
+serpentine_beam_w  = (serpentine_work_h - fire_btn_stop_reserve - 2*fire_btn_flange_t)
+                     / serpentine_loops                                   =  1.10
+-- 2. stress at the allowable sets the arc radius.  ROUND THE RADIUS UP, THEN
+--    RECOMPUTE THE LENGTH FROM IT -- rounding down puts sigma over the allowable:
+L_min              = sqrt(3*E_flex_mpa*fire_btn_travel*serpentine_beam_w
+                          / (serpentine_loops*sigma_allow_cyclic_mpa))    = 13.229
+serpentine_loop_r  = ceil_to_0.01(L_min / PI)                             =  4.22
+serpentine_len_dev = PI * serpentine_loop_r                               = 13.257
+-- 3. force at the target sets the out-of-plane depth (the force knob):
+serpentine_beam_t  = fire_btn_force_n * serpentine_loops * serpentine_len_dev^3
+                     / (E_flex_mpa * serpentine_beam_w^3 * fire_btn_travel) = 4.80
+-- verification:
+k_serp             = E*t*w^3 / (loops*L_dev^3)                            =  0.9141 N/mm
+F_serp             = k_serp * fire_btn_travel                             =  3.199 N   (target 3.20)
+sigma_serp         = 3*E*fire_btn_travel*w / (loops*L_dev^2)              = 21.91 MPa  (allow 22.0)
+serpentine_footprint = 2*serpentine_loop_r + serpentine_beam_w            =  9.54  <= 11.50
+serpentine_gap     = serpentine_free_h/loops - w                          =  1.15  >= 0.98
+serpentine_solid_h = loops*w + 2*fire_btn_flange_t                        =  9.00
+reserve            = serpentine_work_h - serpentine_solid_h               =  1.00  -- ASSERT-06, exact
+```
+
+`serpentine_len_dev` is **`PI * serpentine_loop_r` and nothing else**. The implementation must measure the generated wire and assert it equals this value to 0.05 mm (review B-10). The Phase 2 constant `serpentine_loop_dev_len_petg = 12.10` is void.
+
+### 15.4 Guard bi-stable cam — leaf width solved from holding torque **[S-10, answers OQ-3]**
+
+```
+guard_detent_torque_nmm = 3.00                                   (new requirement)
+k_cam_leaf   = E_flex_mpa*guard_cam_leaf_w*guard_cam_leaf_t^3 / (4*guard_cam_leaf_len^3)
+guard_cam_leaf_w = 4*guard_cam_leaf_len^3*guard_detent_torque_nmm
+                   / (E_flex_mpa*guard_cam_leaf_t^3*guard_cam_lobe*guard_cam_base_r) = 5.56 -> 6.00
+-- verification at the rounded width:
+F_cam        = k_cam_leaf * guard_cam_lobe                                =  1.013 N
+T_detent     = F_cam * guard_cam_base_r                                   =  3.24 N.mm  (target 3.00)
+sigma_cam    = 3*E_flex_mpa*guard_cam_lobe*guard_cam_leaf_t
+               / (2*guard_cam_leaf_len^2)                                 = 15.00 MPa   (allow 22.0)
+sigma_cam_rest = 0 at both flats                                                        (R-M2 by construction)
+```
+
+3.00 N·mm is roughly 80x the hood's own gravity torque about the hinge (~0.04 N·mm at 0.36 g), so the guard holds shut in any orientation while still opening under a deliberate thumb flick. `guard_cam_leaf_w` = 6.00 is retained — it is now *justified* rather than free.
+
+### 15.5 Hat star spring — PETG solve on the two-active-arm model **[S-11, resolves review M-12]**
+
+The approved two-plane arm layout means that for a tilt about either axis, **two arms bend and two lie on the neutral axis**. The force model is corrected accordingly; `hat_spring_arm_count` = 4 remains the arm count, but `hat_active_arm_count` = 2 is the count that appears in the force equation.
+
+```
+hat_active_arm_count = hat_spring_arm_count / 2                           =  2
+hat_tip_deflect      = hat_arm_r * sin(hat_deflection_deg)                =  1.6935
+hat_spring_arm_len   = hat_arm_mean_r * hat_arm_sweep_deg * PI/180        = 17.017
+k_hat_req            = hat_force_n / (hat_active_arm_count*hat_tip_deflect) = 0.8267 N/mm
+hat_spring_arm_thick = 2*sigma_allow_cyclic_mpa*hat_spring_arm_len^2
+                       / (3*E_flex_mpa*hat_tip_deflect)                   =  1.25
+hat_spring_arm_width = 4*k_hat_req*hat_spring_arm_len^3
+                       / (E_flex_mpa*hat_spring_arm_thick^3)              =  4.17
+-- verification:
+k_hat_arm  = 3*E*I/L^3,  I = b*t^3/12 = 0.6787 mm^4                       =  0.8264 N/mm
+F_hat      = hat_active_arm_count * k_hat_arm * hat_tip_deflect           =  2.799 N  (target 2.80)
+sigma_hat  = 3*E*hat_tip_deflect*t / (2*L^2)                              = 21.93 MPa (allow 22.0)
+arm_r_span = hat_arm_mean_r +/- hat_spring_arm_width/2   = 4.415 .. 8.585 <= hat_cap_od/2 = 8.75
+hat_lower_arm_y = hat_ball_bottom_y                                       = 26.75
+hat_upper_arm_y = hat_lower_arm_y + hat_spring_arm_thick + gap_print_min  = 28.40
+```
+
+### 15.6 Throttle detent leaf — PETG re-solve **[S-11]**
+
+The Phase 2 PETG leaf met its force target but left the carriage plate with 0.475 mm side rails (review M-06) and, at the specified 0.45 mm preload, exceeded the 6.0 MPa PETG creep limit. Both are fixed by taking the full cyclic-stress budget, which buys a much narrower beam.
+
+```
+-- preload reduced until the rest stress clears the sustained allowable:
+throttle_detent_preload = 0.41
+leaf_deflect            = throttle_detent_preload + afterburner_lift      =  1.51
+-- stress at the allowable sets the thickness (L_dev is fixed by the fold envelope):
+throttle_leaf_thick = 2*sigma_allow_cyclic_mpa*throttle_leaf_len^2
+                      / (3*E_flex_mpa*leaf_deflect)                       =  3.92
+-- force at the target sets the width (the stress-neutral knob):
+k_leaf_req          = throttle_break_force_n
+                      / (ramp_factor_throttle * leaf_deflect)             =  2.6835 N/mm
+throttle_leaf_width = 4*k_leaf_req*throttle_leaf_len^3
+                      / (E_flex_mpa*throttle_leaf_thick^3)                =  2.04
+-- fold radius chosen so the plate keeps a full internal wall on each side:
+throttle_leaf_fold_r = 1.90
+leaf_env_y           = (arms-1)*2*fold_r + width                          =  5.84
+plate_side_rail      = (dovetail_base_w - leaf_env_y - 2*gap_print_min)/2 =  1.93  >= wall_internal
+arm_gap              = 2*fold_r - width                                   =  1.76  >= gap_print_min
+leaf_arm_len         = (L_dev - (arms-1)*PI*fold_r)/arms                  = 11.221
+leaf_env_x           = arm_len + fold_r + width/2                         = 14.141 <= 15.00
+carriage_plate_t     = thick + leaf_deflect + gap_print_min  = 5.83 -> ceil   5.85
+tab_h_z              = rail_channel_depth - carriage_plate_t - tab_recess =  1.15  >= feature_min
+follower_home_x      = rail_end_clear + leaf_env_x                        = 14.641
+ramp_apex_x          = follower_home_x + afterburner_travel               = 38.441
+follower_full_x      = follower_home_x + throttle_stroke                  = 42.641 <= 44.00
+-- verification:
+k_leaf   = 3*E*I/L^3,  I = b*t^3/12 = 10.240 mm^4                         =  2.6794 N/mm
+F_break  = k_leaf * leaf_deflect * ramp_factor_throttle                   =  4.294 N (target 4.30)
+sigma_leaf      = 3*E*leaf_deflect*t / (2*L^2)                            = 22.00 MPa (allow 22.0)
+sigma_leaf_rest = 3*E*preload*t / (2*L^2)                                 =  5.97 MPa (allow  6.0)
+```
+
+### 15.7 Trigger — PETG solve **[S-11]**
+
+Stage 1 is unchanged in substance from the Phase 2 solve; it is republished here as formulas so there is one source of truth. Stage 2 is republished unchanged: its force target is met at 16.63 MPa, so there is no reason to spend the remaining stress budget.
+
+```
+trigger_stage1_thick = 2*sigma_allow_cyclic_mpa*trigger_stage1_len^2
+                       / (3*E_flex_mpa*trigger_stage1_travel)             =  1.098
+k_t1_req             = trigger_stage1_force_n / trigger_stage1_travel     =  0.5333 N/mm
+trigger_stage1_width = 4*k_t1_req*trigger_stage1_len^3
+                       / (E_flex_mpa*trigger_stage1_thick^3)              =  7.68
+F_stage1             = k_t1 * trigger_stage1_travel                       =  1.601 N (target 1.60)
+sigma_t1                                                                  = 21.99 MPa
+
+trigger_stage2_thick = 1.50   (chosen; force target met with 24 % stress margin)
+trigger_stage2_width = 7.22   (tuning knob)
+k_t2                 = 3*E*I/L^3,  I = b*t^3/12 = 2.0306 mm^4             =  6.710 N/mm
+F_t2_normal          = k_t2 * trigger_stage2_deflect                      =  3.690 N
+F_t2_tangential      = F_t2_normal * ramp_factor_gate                     =  6.853 N
+trigger_tooth_r      = (trigger_break_force_n - trigger_stage1_force_n)
+                       * trigger_contact_r / F_t2_tangential              =  9.456
+F_break_total        = F_stage1 + F_t2_tangential*tooth_r/contact_r       =  5.201 N (target 5.20)
+sigma_t2                                                                  = 16.63 MPa
+```
+
+### 15.8 Bezel section **[S-08]**
+
+```
+bezel_w        = bezel_cavity_w + 2*wall_exterior                         = 23.00
+bezel_h        = bezel_cavity_h + 2*wall_exterior                         = 25.00
+bezel_wall_z   = (bezel_w - bezel_cavity_w)/2                             =  2.40  -- ASSERT-26
+bezel_wall_y   = (bezel_h - bezel_cavity_h)/2                             =  2.40  -- ASSERT-26
+guard_recess_wall_z = (bezel_w - guard_recess_w)/2                        =  3.50
+guard_recess_wall_y = (bezel_h - guard_recess_h)/2                        =  2.50
+```
+
+ATH_04's `guard_wall` = 1.60 is **not** raised; it is granted the shell exemption of `DESIGN_SPEC.md` §10.2 and is bounded by the new `wall_shell_min`.
+
+### 15.9 Alignment keys **[S-01, S-09]**
+
+```
+key_stations_x   = [20.00, 37.00]        (both inside the grip-root band, clear of datum J)
+key_socket_side  = key_side + 2*fit_clearance_static                      =  4.20
+key_socket_depth = key_len/2 + fit_clearance_static                       =  4.10
+key_bulkhead_x   = key_socket_side + 2*wall_internal                      =  7.80
+key_bulkhead_y   = key_socket_depth + wall_internal                       =  5.90
+key_separation   = key_stations_x[1] - key_stations_x[0]                  = 17.00
+```
+
+The waist rib is deleted (it could not enter a 4.20 mm socket). ATH_10's controlled envelope is therefore exactly `key_side` x `key_len` x `key_side` = 4.00 x 8.00 x 4.00. ATH_01 gains two transverse bulkheads at the key stations because its interior is open at datum A and a blind socket needs material around it; ATH_02 needs none, since both stations lie in the solid grip root.
+
+### 15.10 Material allocation — single source **[S-11, retires §14]**
+
+The hybrid allocation approved under OQ-6 is now normative. Each flexure belongs to exactly one part, so each has exactly one material and one solved geometry. **The `*_petg` duplicate parameters introduced in Phase 2 are void** — every value in §§1–11 is now the value for its own part's material.
+
+| Part | Material | `E_flex_mpa` | `sigma_allow_cyclic_mpa` | `sigma_allow_sustained_mpa` | `strain_assembly_max` | Compliant features it owns |
+| :-- | :-- | --: | --: | --: | --: | :-- |
+| ATH_01 | PLA+ | 3300 | 25.0 | 8.0 | 0.015 | ratchet pawl, 4 seam hooks, trim post fingers |
+| ATH_02 | PLA+ | 3300 | 25.0 | 8.0 | 0.015 | trigger cradle spring walls |
+| ATH_03 | PETG | 2000 | 22.0 | 6.0 | 0.025 | bi-stable cam leaf, 2 bezel barbs |
+| ATH_04 | PETG | 2000 | 22.0 | 6.0 | 0.025 | — (cam lobe is rigid) |
+| ATH_05 | PETG | 2000 | 22.0 | 6.0 | 0.025 | arc serpentine |
+| ATH_06 | PETG | 2000 | 22.0 | 6.0 | 0.025 | 4 spiral star arms, bayonet lugs |
+| ATH_07 | PLA+ | 3300 | 25.0 | 8.0 | 0.015 | — (ratchet ring is rigid) |
+| ATH_08 | PETG | 2000 | 22.0 | 6.0 | 0.025 | folded detent leaf |
+| ATH_09 | PETG | 2000 | 22.0 | 6.0 | 0.025 | stage-1 leaf, stage-2 tooth |
+| ATH_10 | PLA+ | 3300 | 25.0 | 8.0 | 0.015 | — |
+
+`material` is therefore a **per-part** property, not a global switch. `validate()` must be evaluated once per part with that part's material, and an assembly-level check must evaluate all ten (review M-17).
+
+### 15.11 New and amended assertions
+
+The implementation's ad-hoc ASSERT-24 … ASSERT-52 collide with this numbering. **Rename every implementation-invented assertion to the `ASSERT-Inn` namespace**; `ASSERT-nn` is reserved for this document.
+
+| ID | Assertion | Guards |
 | :-- | :-- | :-- |
-| `serpentine_beam_t` | 4.80 | 7.92 → clamp to 7.00, accept 2.83 N (−12 %) |
-| `throttle_leaf_width` | 4.00 | 6.60 → drives `leaf_env_y` to 11.80, above the 10.50 carriage; needs a 3-arm re-solve |
-| `hat_spring_arm_width` | 4.00 | 6.60 |
-| `pawl_width` | 3.60 | 5.94 |
-| `trigger_stage1_width` | 14.60 | 24.09 → exceeds the 21.7 mm grip interior; reduce `trigger_stage1_len` to 18.6 and re-solve |
-| `trigger_stage2_width` | 6.00 | 9.90 |
-
-Three of six do not fit at 1.65×. **PETG is therefore not a drop-in substitution** — it needs its own geometry pass. This is OQ-6; it must be answered before Phase 2 rather than discovered during it.
+| ASSERT-07 *(restored)* | `fire_btn_proud + gap_print_min <= guard_hood_h - guard_wall` | guard closes over the button (S-02, B-03) |
+| ASSERT-10 *(restored)* | `serpentine_footprint/2 + wall_internal <= trim_pocket_floor_z` | F-06, spring bore vs trim pocket |
+| ASSERT-19 *(amended)* | `seam_x_max == chassis_body_length - front_lower_chamfer` and all hook/key stations `< seam_x_max` | S-03 |
+| ASSERT-24 | chassis section over X ∈ [`bezel_rear_x`, `chassis_length`] contains no material outside `collar_w` x `collar_h` centred on (`bezel_center_y`, 0) | S-03, B-01 |
+| ASSERT-25 | `min(abs(key_stations_x[i] - trigger_pivot_x)) >= key_socket_side/2 + trigger_cradle_wall_len/2 + wall_internal` | S-01, B-12 |
+| ASSERT-26 | `(bezel_w - bezel_cavity_w)/2 >= wall_exterior` and `(bezel_h - bezel_cavity_h)/2 >= wall_exterior` | S-08, M-09 |
+| ASSERT-27 | `(dovetail_base_w - leaf_env_y - 2*gap_print_min)/2 >= wall_internal` | M-06 |
+| ASSERT-28 | `serpentine_len_dev == PI*serpentine_loop_r` and equals the measured wire length ± 0.05 | B-10 |
+| ASSERT-29 | `T_detent >= guard_detent_torque_nmm` | S-10 |
+| ASSERT-30 | `F_hat == hat_active_arm_count * k_hat_arm * hat_tip_deflect` within 15 % of `hat_force_n` | M-12 |
+| ASSERT-31 | every flexure: `sigma <= sigma_allow_cyclic_mpa` **of its own part's material**, evaluated for all ten parts in one run | M-17 |
+| ASSERT-32 | every preloaded flexure: `sigma_rest <= sigma_allow_sustained_mpa` of its own part's material | M-17, R-M2 |
+| ASSERT-33 | every snap whose bending axis is parallel to print Z: `strain <= strain_assembly_max_xlayer` | R-P2, S-05 |
+| ASSERT-34 | `guide_length_fire_btn / fire_btn_size >= 1.40` | M-10 |
+| ASSERT-35 | no clearance expression anywhere in the source contains `eps` | M-04 |

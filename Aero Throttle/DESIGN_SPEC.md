@@ -7,6 +7,7 @@
 
 > **Reading order for the implementation agent:** §2 (datums) → §5 (fits) → §6 (material model) → §7 (compliant mechanisms) → §8 (parts) → `PARAMETERS.md` → `design/ALGORITHM.md`.
 > **§13 is mandatory reading:** the PRD contains dimension sets that are geometrically or mechanically impossible. §13 lists every superseded value with its replacement and reason. Where §13 and the PRD disagree, **§13 governs.**
+> **§16 is mandatory reading and outranks everything above it:** it carries the Phase 3 corrections (S-01 … S-11) issued against `design/DESIGN_REVIEW.md`, including two clauses that described unbuildable geometry. Where §16 and §§1–15 disagree, **§16 governs.** Read it before §8.
 
 ---
 
@@ -433,7 +434,7 @@ F_break_total   = 1.60 + 6.850 * 9.46/18.00 = 5.20 N   (target met)
 | Fire button serpentine | **Infeasible** | 59 MPa, above yield | Arcs + out-of-plane depth (D-06) |
 | Hat star spring | **Infeasible** | 111 MPa, 4.4x yield | Spiral arms (D-08) |
 | Trigger stage 1 | **Infeasible** | 84.2 MPa, 1.5x yield | Longer curved leaf (D-09) |
-| Guard bi-stable cam | Feasible but unspecified | no force target given | See OQ-3 |
+| Guard bi-stable cam | Feasible, now specified | none (0.80 mm lobe at 15.00 MPa) | Torque target set, leaf width solved (§16.10) |
 
 ### 7.7 Snap feature sizing (assembly strain, R-M3)
 
@@ -920,10 +921,189 @@ Answer these before Phase 2 implementation begins; each changes geometry.
 | :-- | :-- | :-- | :-- |
 | **OQ-1** | Keep the 28.0 mm throttle stroke with a 15.0 mm carriage (guide ratio 1.43), or reduce to a 24.0 mm stroke with an 18.0 mm carriage (ratio 1.71)? | 1.43 is close to the binding threshold for an off-axis thumb load. | Build 1.43 first (it preserves the headline spec) and fall back to 24.0 mm only if V-170 shows binding. |
 | **OQ-2** | Are the dBA targets (48/54/46) contractual, or indicative? | They cannot be verified analytically or from a mesh; only V-172/V-174 on a printed part can judge them. | Treat as indicative; record measured values, do not gate the release on them. |
-| **OQ-3** | What detent torque should hold the missile guard at 0 deg and 90 deg? | The PRD gives geometry (0.80 mm lobe) but no force, so the cam leaf width is currently a free variable (set to 6.00). | Specify a holding torque, or accept 6.00 mm and tune after the first article. |
+| **OQ-3** | ~~What detent torque should hold the missile guard at 0 deg and 90 deg?~~ | — | **CLOSED by §16.10:** `guard_detent_torque_nmm` = 3.00 N·mm; `guard_cam_leaf_w` is now solved from it and returns 6.00. |
 | **OQ-4** | Must the chassis/grip seam be openable? | If yes, the four hooks need tool-access slots through the grip shell, which are visible and weaken the seam. | Make it openable; a fidget toy that cannot be reopened cannot be serviced when a flexure fails. |
 | **OQ-5** | Is the 28.0 mm palm swell a hard ergonomic requirement? | It breaks the 26.5 mm width budget (D-02). | Accept 26.10 mm, or raise `chassis_width` to 28.4 mm and restate the S-2 target. |
 | **OQ-6** | PLA+ or PETG as the released material? | Every spring force scales with E: PETG at 2000 MPa delivers 61 % of the PLA+ forces from identical geometry. | Release PLA+ geometry as primary and publish a PETG parameter set where the width/depth terms are scaled by 1.65. |
 | **OQ-7** | Optimum pawl preload for PETG (PROJECT.md open item) | -0.40 mm is sized for PLA+. | Resolve with OQ-6. |
 | **OQ-8** | Single-plate multi-colour layout or ten mono-colour STLs? (PROJECT.md open item) | Changes the export step and the print-orientation table. | Ship ten per-part STLs plus one colour-tagged 3MF; the plate layout is a slicer concern. |
+| **OQ-10** | The four seam snap hooks bend across layers in both shells' build orientations and fail R-P2 at 1.44 % against a derated 0.90 % limit. Lengthen and relocate, increase the count with a reduced barb, or accept the derating behind a first-article gate? | It is the assembly's primary retention joint; a hook that cracks on first assembly scraps the part (F-04). | **See §16.12 — recommendation (2): six hooks, `snap_barb_depth` 0.80, length 16.0.** Phase 4 builds option (3) meanwhile, so the datum-A side error is fixed independently. |
 | **OQ-9** | How is the AP242 STEP produced? | OpenSCAD emits meshes only; `cad_config.json` has an empty `step_export`. The repo already contains `geometry_engine/exporters/cadquery.py`. | Either (a) accept mesh-only deliverables and drop the STEP requirement, or (b) make CadQuery/OCCT the geometry of record and treat OpenSCAD as preview. **(b) is recommended** - the compliant mechanisms need real fillets, which OpenSCAD does not natively provide. This decision must be made before any implementation code is written. |
+
+---
+
+## 16. Phase 3 Specification Corrections (S-01 … S-11) — **normative, supersedes §§1–15**
+
+**Status:** issued 2026-08-21 by the design authority, in response to `design/DESIGN_REVIEW.md` §5.
+**Precedence:** where this section and §§1–15 disagree, **§16 governs** — the same relationship §13 has to the PRD. Companion changes are in `PARAMETERS.md` §15.
+**Why it exists:** eleven defects found in Phase 3 are in the specification itself, not in the implementation. Two of them (S-01, S-02) describe geometry that cannot be built at any tolerance. Codex is instructed by `AGENTS.md` to stop and report ambiguity rather than resolve it, so these had to be closed by the design authority before Phase 4 could begin.
+
+### 16.1 S-01 — Alignment key stations moved clear of datum J
+
+**Defect.** §8.2 feature 11 placed a key socket at X = 58.0 while feature 5 placed the trigger pivot axis J at (58.0, −4.0, Z). The key spans Y[−4.0, +4.0], so it passes through the trunnion. Measured interference ATH_09 ∩ ATH_10_B = 31.15 mm³ (review B-12).
+
+**Correction.** `key_stations_x` = **[20.0, 37.0]**. Both stations lie inside the grip-root band, where ATH_02 has full socket depth in solid material, and both are clear of datum J, of the trim pocket (X ≥ 49.0) and of ATH_09's swept envelope (X ∈ [46.0, 62.0]). Key separation falls from 28.0 mm to 17.0 mm; §8.10's shear sizing is unaffected because it is a per-key double-shear stress check (0.78 MPa, factor of 40 below allowable), not a couple calculation.
+
+**New feature — §8.1 feature 20, key socket bulkheads (x2).** ATH_01's interior is open at datum A, so a blind socket there has no surrounding material. Add two transverse internal ribs at `key_stations_x`, section `key_bulkhead_x` = 7.80 (X) × `key_bulkhead_y` = 5.90 (Y), spanning the full interior Z width and tied to both inner flank walls, with the socket bored from datum A. They double as chassis stiffeners and print as vertical ribs in ATH_01's build orientation. ATH_02 needs no equivalent: both stations sit in the solid grip root.
+
+**Assertion:** ASSERT-25.
+
+### 16.2 S-02 — Fire-button protrusion is now derived, not typed
+
+**Defect.** `fire_btn_proud` = 3.00 violated its own declared bound in `PARAMETERS.md` §6 (`< guard_hood_h − guard_wall` = 2.90) and put the button head 0.10 mm inside the closed hood's inner ceiling. Measured ATH_04 ∩ ATH_05 = 7.21 mm³ (review B-03).
+
+**Correction.** `fire_btn_proud` = `guard_hood_h − guard_wall − gap_print_min` = **2.50**. The full revised axial stack is in `PARAMETERS.md` §15.2. Consequences:
+
+* Button head front face moves 84.50 → **84.00**, flush with the bezel front face; clearance to the closed hood's ceiling becomes exactly `gap_print_min` = 0.40 mm.
+* `snout_cavity_rear_x` moves 66.00 → **65.50**; the spring anchor plate moves to X = 65.70. The region X[65.50, 72.00] at Y[16.05, 27.95], Z[±3.10] is empty chassis interior, so nothing else moves.
+* §8.5's bounding box becomes X[65.70, 84.00], Y[15.75, 28.25], Z[−6.25, +6.25].
+* The X chain is untouched — `fire_btn_proud` is not one of its terms. `overall_length` remains 86.000.
+
+**Assertion:** ASSERT-07, restored to `fire_btn_proud + gap_print_min <= guard_hood_h - guard_wall`.
+
+### 16.3 S-03 — The chassis snout is necked down to the collar
+
+**Defect.** §8.1 feature 4 called the collar a "male boss" over X[72.0, 82.0] but never stated that the surrounding chassis nose must be removed. Built literally, the collar lands inside the existing solid and the bezel's rear ring drives into a full-section chassis nose: measured ATH_01 ∩ ATH_03 = 450.86 mm³ (review B-01).
+
+**Correction — §8.1 features 1, 3 and 4 are replaced by:**
+
+| # | Feature | Controlled dimensions | Interfaces |
+| :-- | :-- | :-- | :-- |
+| 1 | Main shell | `chassis_body_length` (72.0) × `chassis_height` × `chassis_width`, hollow, open at Y = 0 | — |
+| 3 | Front-lower chamfer | 45°, leg `front_lower_chamfer` = **2.00**, measured from the **body** front face: from (72.0, 2.0) to (70.0, 0.0) in XY, full width | sets `seam_x_max` |
+| 4 | Snout collar boss | Free-standing boss over X[`bezel_rear_x`, `chassis_length`] = [72.0, 82.0], section `collar_w` × `collar_h` = 18.0 (Z) × 20.0 (Y) centred on (`bezel_center_y`, 0). **All chassis material outside that section is absent over the same X band.** 45° lead-in on the boss's front edges. | ATH_03 rear cavity (FC-STATIC) |
+
+New derived value `chassis_body_length` = `bezel_rear_x` = 72.00. Datum D (X = 82.0) is unchanged and is now the **boss** front face; a secondary datum **D′** = body front face at X = 72.0 is added to §2.4. `seam_x_max` keeps its value of 70.00; only its derivation changes (`chassis_body_length − front_lower_chamfer`).
+
+The 12.00 mm nose chamfer is no longer needed to clear the bezel — the neck-down does that — so shrinking it to 2.00 mm costs nothing functional. ATH_02's tray still stops at X = 70.0.
+
+**Assertions:** ASSERT-24; ASSERT-19 amended.
+
+### 16.4 S-03 addendum — §3.4 flank map corrected
+
+The §3.4 row "wheel pocket front (73.0) → collar rear (72.0): overlap only where wheel Y ≤ 8.8 and collar Y ≥ 12.0 → 3.20 mm separation ✔" is **wrong**. The pocket is a D24.0 cylinder centred at (61.0, 8.80); at X = 72.0 its half-chord is `sqrt(12² − 11²)` = 4.796 mm, so it reaches Y = 13.60 — 1.60 mm above the collar's lower edge at Y = 12.0.
+
+**Corrected statement.** Over X[72.0, 73.0], Y[12.0, 13.6], Z[5.25, 9.0] the trim pocket removes a scallop from the collar boss's rear-lower +Z corner. This is **accepted**: the boss locates the bezel over 18.0 × 20.0 × 10.0 mm and the scallop removes 1.6 mm of one corner's contact. It existed in the pre-correction geometry too and is not a consequence of the neck-down. No parameter changes; §3.4's assertion text is corrected to match.
+
+### 16.5 S-04 — ATH_08 bounding box corrected
+
+§8.8's declared bounding box Z[5.00, 12.85] contradicted its own feature 1 (dovetail tenon at Z[4.10, 5.85]); the build measures Z[4.11, 12.85]. **Corrected:** part datum (3.50, 22.0, `dovetail_floor_z` = 4.10); bounding box **X[3.50, 18.50], Y[16.75, 27.25], Z[4.10, 12.85]**.
+
+### 16.6 S-05 — Print orientation and the flexure-plane rule, restated
+
+**Defect.** §10.4's rotations do not put its own declared build faces on the plate — `rot Y +90` maps design +X to print −Z, so it cannot seat a Z-normal face — and for two parts the declared build face made R-P1 unsatisfiable as worded.
+
+**Correction — §10.4 is replaced.** Each part declares its **build face**; the print Z axis is the outward normal of that face reversed, expressed in design axes. The rotation is a computed consequence and is never typed.
+
+| Part | Build face | Print Z, in design axes | Flexure plane status |
+| :-- | :-- | :-- | :-- |
+| ATH_01 | Datum A (Y = 0) | **+Y** | pawl, hooks: **R-P1a exempt**, see 16.6.1 |
+| ATH_02 | Datum A (Y = 0), part below | **−Y** | cradle spring walls: R-P1b ✔ |
+| ATH_03 | Front face (X = `bezel_front_x`) | **−X** | cam leaf: **R-P1a exempt**, see 16.6.1 |
+| ATH_04 | Side profile (Z = −`guard_hood_w`/2) | **+Z** | no flexure; hinge pins horizontal, max shear |
+| ATH_05 | **Side face (Z = −6.25)** *(changed)* | **+Z** | serpentine: R-P1b ✔ |
+| ATH_06 | Arm underside (Y = `hat_lower_arm_y`) | **+Y** | star arms: R-P1a ✔, R-P1b unattainable by geometry |
+| ATH_07 | −Z face | **+Z** | no flexure; knurl and teeth print as vertical walls |
+| ATH_08 | **Y face (Y = 16.75)** *(changed)* | **+Y** | detent leaf: R-P1b ✔ |
+| ATH_09 | Side profile (Z = −7.25) | **+Z** | stage-1 leaf, stage-2 tooth: R-P1b ✔ |
+| ATH_10 | Any 4 × 4 face | **+Y** | concentric perimeters resist shear |
+
+Two build faces changed, and both are improvements found while re-deriving the table:
+
+* **ATH_05 now prints on a Z face.** The serpentine's plane becomes the print XY plane, so the spring's 4.80 mm depth prints as self-supporting vertical walls instead of a stack of horizontal cantilevered bars. This is the single largest overhang source in the Phase 2 build (28.06 % of ATH_05's surface area, review B-15).
+* **ATH_08 now prints on a Y face.** Both the leaf's axis and its deflection then lie in the print XY plane, and the dovetail's 45° flanks remain self-supporting.
+
+**R-P1 is replaced by two tiers:**
+
+* **R-P1a (mandatory where attainable).** Every flexure's neutral axis lies in the print XY plane, so bending tension is carried along extruded filament and never across an inter-layer bond.
+* **R-P1b (preferred).** The bending-plane normal is parallel to print Z, so the beam's thickness is also measured in-plane and the layer interfaces carry no interlaminar shear from bending.
+
+**V-158 is restated:** for every flexure, assert R-P1a; assert R-P1b, or match an exemption recorded in 16.6.1.
+
+**R-P2 (new).** A one-time snap feature whose bending axis is parallel to print Z must satisfy the derated limit `strain <= strain_assembly_max_xlayer` = 0.60 × `strain_assembly_max`. The 0.60 factor is the published lower bound on FDM inter-layer tensile strength relative to in-plane strength. Assertion ASSERT-33.
+
+#### 16.6.1 Recorded orientation exemptions
+
+Three features cannot satisfy R-P1a under any build face that is otherwise viable for their part. Each is recorded here with its consequence and the test that will catch it, rather than silently built or silently dropped.
+
+| Feature | Conflict | Consequence accepted | Caught by |
+| :-- | :-- | :-- | :-- |
+| ATH_01 ratchet pawl | A radial pawl must bend in the wheel's plane (design XY). ATH_01's only viable build face is datum A, which puts design Y along print Z. Printing ATH_01 on a flank instead would leave a 77 × 33 mm unsupported cavity ceiling. | Pawl bends across layers. Fatigue life reduced; the 10⁴-cycle target is unproven. | V-172 and V-177 on the first article |
+| ATH_01 / ATH_02 seam hooks (x4) | A hook that engages a −Y closing motion necessarily has its axis along Y, which is print Z for both shells. | One-time assembly at 1.44 % strain against a derated 0.90 % cross-layer limit (R-P2) — **currently failing**. | ASSERT-33, V-142 |
+| ATH_03 bi-stable cam leaf | The leaf must be driven by a lobe rotating about a Z-parallel axis, so it bends in design XY; ATH_03's front-face build puts design X along print Z. | Leaf bends across layers at 15.00 MPa, well under the 22.0 MPa allowable, so the margin absorbs the derating. | V-177 |
+
+The seam-hook row is a live failure, not an accepted risk. **OQ-10 below records the decision required.**
+
+### 16.7 S-06, S-07 — Deviation-table corrections
+
+* **D-12 / `bezel_barb_len`:** `PARAMETERS.md` §6 said 10.50 while §7.7, §8.3 and D-12 all said 11.60. At 10.50 the assembly strain is 1.81 %, above the PLA limit. **11.60 governs**; the registry is corrected. (The Phase 2 implementation used 11.60 and was right.)
+* **D-05:** "pawl becomes 17.70 dev × **5.50** wide" is wrong; §7.2 and §12.5 both solve **3.60**. D-05 is corrected to 3.60.
+* **D-09:** "developed **21.00**, new width **14.50**" is wrong; §7.5, §8.9 and §12.10 use **21.20** and, after the PETG re-solve, **7.68**. D-09 is corrected accordingly.
+
+### 16.8 S-08 — Wall minima reconciled
+
+* **Bezel.** `bezel_w` 22.00 → **23.00** and `bezel_h` 24.00 → **25.00**, making the wall around the collar cavity exactly `wall_exterior` = 2.40 mm on all four sides. §8.3's bounding box becomes X[72.0, 84.0], Y[9.5, 34.5], Z[±11.5]. The bezel remains inside the ±13.25 mm flank budget and still seats on the chassis body front face. Assertion ASSERT-26.
+* **Guard hood.** `guard_wall` = 1.60 mm is **retained under an explicit exemption**, added to §10.2:
+
+  > **P-2 exemption (shell walls).** P-2's 2.40 mm minimum applies to load-bearing exterior walls. A closed shell loaded only in compression over its own footprint — at present only ATH_04's hood — may use `wall_shell_min` = 1.60 mm (4 perimeters at 0.40). The exemption must be named per part in this clause; it is not a general relaxation.
+
+### 16.9 S-09 — ATH_10 waist rib deleted
+
+§8.10 declared a 4.00 mm bounding box together with a 0.30 mm proud waist rib at mid-length, producing a 4.60 mm section that cannot enter a 4.20 mm socket. **Feature 3 is deleted.** ATH_10 is a plain `key_side` × `key_len` × `key_side` = 4.00 × 8.00 × 4.00 mm key with `key_chamfer` = 0.60 × 45° lead-ins at both ends, and its controlled envelope is exactly that.
+
+### 16.10 S-10 — OQ-3 answered: guard detent torque
+
+**OQ-3 is closed.** `guard_detent_torque_nmm` = **3.00 N·mm** at each rest position (0° and 90°). This is roughly 80× the hood's own gravity torque about the hinge (≈ 0.04 N·mm at 0.36 g), so the guard holds shut in any orientation while still releasing under a deliberate thumb flick on the lift tab.
+
+`guard_cam_leaf_w` is now **solved from that target** rather than free (`PARAMETERS.md` §15.4): the solve returns 5.56 mm and rounds up to the previously assumed **6.00 mm**, delivering 3.24 N·mm at 15.00 MPa. §7.6's "Guard bi-stable cam — feasible but unspecified" row is closed, and §8.4's bi-stable kinematics gain the torque figure. Assertion ASSERT-29.
+
+### 16.11 S-11 — Hybrid material allocation is now normative; §7 solves republished
+
+**Defect.** OQ-6's "hybrid material authorised" decision was never propagated into §6 or §7. The implementation re-solved four flexures for PETG by changing **thickness** — which §10.1 of `design/ALGORITHM.md` defines as a redesign requiring a return through §7 — and `PARAMETERS.md` §14 still asserted that PETG is not a drop-in and that three of six widths do not fit.
+
+**Correction.** The per-part material map is published in `PARAMETERS.md` §15.10 and is normative. `material` is a **per-part** property, not a global switch. §14's PLA-scaling table is retired. Every flexure now has exactly one material and one solved geometry, so the `*_petg` duplicate parameters are void.
+
+The re-solved compliant mechanisms, with §6.2 equations and each part's own allowables (full derivations in `PARAMETERS.md` §15.3, §15.5, §15.6, §15.7):
+
+| Mechanism | Part / material | L (dev) | b | t | Force / torque | σ working | σ rest |
+| :-- | :-- | --: | --: | --: | :-- | --: | --: |
+| Throttle detent leaf | ATH_08 / PETG | 28.41 | 2.04 | 3.92 | 4.294 N break (4.30) | 22.00 | 5.97 |
+| Trim ratchet pawl | ATH_01 / PLA+ | 17.70 | 3.60 | 1.05 | 12.09 N·mm (12.0) | 24.88 | 6.63 |
+| Fire-button serpentine | ATH_05 / PETG | 13.26 ×6 | 1.10 | 4.80 | 3.199 N (3.20) | 21.91 | 0 |
+| Hat star spring | ATH_06 / PETG | 17.02 | 4.17 | 1.25 | 2.799 N (2.80) | 21.93 | 0 |
+| Trigger stage 1 | ATH_09 / PETG | 21.20 | 7.68 | 1.098 | 1.601 N (1.60) | 21.99 | 0 |
+| Trigger stage 2 | ATH_09 / PETG | 12.20 | 7.22 | 1.50 | 5.201 N break (5.20) | 16.63 | 0 |
+| Guard cam leaf | ATH_03 / PETG | 12.00 | 6.00 | 0.90 | 3.24 N·mm (3.00) | 15.00 | 0 |
+
+Two substantive changes beyond re-publishing:
+
+* **Fire-button serpentine (review B-10).** The Phase 2 spring was straight legs with 1.23 mm end turns — the topology D-06 exists to reject — analysed with a developed length of 12.10 mm that matches nothing in the model. Restored to true arcs; `serpentine_len_dev` = `PI · serpentine_loop_r` and must be verified against the measured wire (ASSERT-28). The solve is now driven by the solid-height reserve, which sets `serpentine_beam_w` = 1.10 first; radius and depth follow.
+* **Hat star spring (review M-12).** The two-plane arm layout means two arms bend per tilt axis and two lie on the neutral axis. The force equation now uses `hat_active_arm_count` = 2, and the arms are re-solved to meet 2.80 N on that basis.
+
+The throttle leaf was additionally re-solved because at `throttle_detent_preload` = 0.45 the Phase 2 PETG section ran at 6.39 MPa at rest, above the 6.0 MPa PETG creep limit, and its envelope left the carriage plate with 0.475 mm side rails. Preload falls to **0.41** and the beam becomes narrower and thicker; `throttle_leaf_fold_r` falls to 1.90 so the plate keeps a full 1.93 mm internal wall each side.
+
+### 16.12 Updated Open Questions
+
+* **OQ-3 — CLOSED.** See 16.10.
+* **OQ-10 — NEW, blocking the seam-hook correction (review B-11).** The four chassis-to-grip snap hooks bend across layers in both shells' build orientations and, at 1.44 % assembly strain against R-P2's derated 0.90 % limit, currently fail. A 19.0 mm hook would clear the limit but would hang in free air below ATH_02's tray at the forward station. Three candidate resolutions:
+  1. **Lengthen and relocate** — move both hook stations into the grip-root band where a 19 mm hook is enclosed, accepting hooks clustered over a shorter span.
+  2. **Increase count, reduce deflection** — six shorter hooks with `snap_barb_depth` reduced to 0.80 mm, which lowers `hook_deflect` to 0.95 mm and the strain to 1.01 % — still above 0.90 %, so it must be combined with a modest length increase to about 16.0 mm.
+  3. **Accept the derating with a first-article gate** — build 15.0 mm hooks as specified and gate release on V-142 plus a destructive assembly test of the first article.
+
+  **My recommendation is (2)**, since it keeps the hooks distributed along the seam, keeps every hook enclosed by existing structure, and lands the strain at roughly 0.85 % with a 16.0 mm beam. **This is a decision for the project owner, not for the implementation agent.** Until it is answered, Phase 4 should build option (3) so that B-11's geometric defect — hooks on the wrong side of datum A — is fixed independently of the strain question.
+
+### 16.13 Traceability
+
+| S-id | Review issue(s) closed or unblocked | This section | `PARAMETERS.md` |
+| :-- | :-- | :-- | :-- |
+| S-01 | B-12, and B-13 in part | 16.1 | §15.9, ASSERT-25 |
+| S-02 | B-03 | 16.2 | §15.2, ASSERT-07 |
+| S-03 | B-01 | 16.3, 16.4 | §15.1, ASSERT-24, ASSERT-19 |
+| S-04 | m-02 class (declared vs built envelope) | 16.5 | — |
+| S-05 | B-15 in part, and the R-P1 conflict behind B-11 | 16.6, 16.6.1 | §15.11, ASSERT-33 |
+| S-06 | — (registry/spec contradiction) | 16.7 | §6 |
+| S-07 | — (deviation-table contradiction) | 16.7 | — |
+| S-08 | M-09, M-21 | 16.8 | §15.8, ASSERT-26 |
+| S-09 | B-13, m-09 | 16.9 | §15.9 |
+| S-10 | — (OQ-3) | 16.10 | §15.4, ASSERT-29 |
+| S-11 | B-10, M-12, M-20, and M-06 via the leaf re-solve | 16.11 | §15.3, §15.5–15.7, §15.10 |
